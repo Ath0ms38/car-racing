@@ -1,6 +1,5 @@
 __pycache__/
 *.pyc
 checkpoints/
-exports/
 .python-version
 uv.lock

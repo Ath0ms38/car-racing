@@ -1,0 +1,195 @@
+{
+  "version": 1,
+  "name": "Demo_Gen177",
+  "exported_at": "2026-02-10T19:07:47.484272+00:00",
+  "car_config": {
+    "name": "Demo",
+    "max_speed": 50.0,
+    "acceleration": 200.0,
+    "brake_force": 200.0,
+    "rotation_speed": 10.0,
+    "drift_enabled": true,
+    "grip": 0.3,
+    "ray_count": 7,
+    "ray_length": 350.0,
+    "ray_angles": "-90.0, -60.0, -30.0, 0.0, 30.0, 60.0, 90.0",
+    "car_image": "assets/default_car.png",
+    "max_ticks": 2000,
+    "stall_timeout": 150
+  },
+  "genome": {
+    "key": 7783,
+    "fitness": 105621.3590161524,
+    "nodes": [
+      {
+        "key": 0,
+        "bias": 0.9805030035620637,
+        "activation": "tanh",
+        "response": 1.0,
+        "aggregation": "sum"
+      },
+      {
+        "key": 1,
+        "bias": 1.6985353469009747,
+        "activation": "tanh",
+        "response": 1.0,
+        "aggregation": "sum"
+      },
+      {
+        "key": 456,
+        "bias": 0.7762760811876664,
+        "activation": "tanh",
+        "response": 1.0,
+        "aggregation": "sum"
+      },
+      {
+        "key": 1105,
+        "bias": -0.507377727164119,
+        "activation": "tanh",
+        "response": 1.0,
+        "aggregation": "sum"
+      }
+    ],
+    "connections": [
+      {
+        "key": [
+          -2,
+          0
+        ],
+        "weight": -1.017474930793739,
+        "enabled": true,
+        "innovation": 3
+      },
+      {
+        "key": [
+          -3,
+          0
+        ],
+        "weight": -8.39674883098904,
+        "enabled": false,
+        "innovation": 5
+      },
+      {
+        "key": [
+          -3,
+          1
+        ],
+        "weight": -1.1691808173694238,
+        "enabled": false,
+        "innovation": 6
+      },
+      {
+        "key": [
+          -4,
+          1
+        ],
+        "weight": 0.00949110634416711,
+        "enabled": false,
+        "innovation": 8
+      },
+      {
+        "key": [
+          -5,
+          0
+        ],
+        "weight": 0.02949435799556377,
+        "enabled": false,
+        "innovation": 9
+      },
+      {
+        "key": [
+          -6,
+          0
+        ],
+        "weight": -3.7301460012009917,
+        "enabled": false,
+        "innovation": 11
+      },
+      {
+        "key": [
+          -7,
+          456
+        ],
+        "weight": -1.4388604229228181,
+        "enabled": false,
+        "innovation": 3020
+      },
+      {
+        "key": [
+          -8,
+          1
+        ],
+        "weight": -6.097512523137735,
+        "enabled": true,
+        "innovation": 16
+      },
+      {
+        "key": [
+          -10,
+          0
+        ],
+        "weight": 1.014976933128277,
+        "enabled": false,
+        "innovation": 19
+      },
+      {
+        "key": [
+          -3,
+          1105
+        ],
+        "weight": 3.3953042999935787,
+        "enabled": true,
+        "innovation": 3411
+      },
+      {
+        "key": [
+          -11,
+          0
+        ],
+        "weight": 1.2411345284601585,
+        "enabled": false,
+        "innovation": 21
+      },
+      {
+        "key": [
+          -11,
+          1
+        ],
+        "weight": -1.3619697199800793,
+        "enabled": false,
+        "innovation": 22
+      },
+      {
+        "key": [
+          1105,
+          0
+        ],
+        "weight": -8.925766309140913,
+        "enabled": true,
+        "innovation": 3412
+      },
+      {
+        "key": [
+          -4,
+          456
+        ],
+        "weight": 1.2975438123990837,
+        "enabled": false,
+        "innovation": 1264
+      },
+      {
+        "key": [
+          -10,
+          1105
+        ],
+        "weight": -0.4381285831472986,
+        "enabled": true,
+        "innovation": 4599
+      }
+    ]
+  },
+  "generation": 177,
+  "species_count": 2,
+  "training_track": "full.track",
+  "fitness_code": "def fitness(car):\n    score = 0.0\n\n    # Reward checkpoint progress (main signal)\n    score += car.total_checkpoints * 1000\n\n    # Reward getting closer to next checkpoint\n    score += (1.0 - car.distance_to_next_cp) * 500\n\n    # Reward completing laps\n    score += car.laps * 10000\n\n    # Reward average speed close to max speed\n    with open(\"config/car_config.ini\", \"r\") as f:\n        for line in f:\n            if line.startswith(\"max_speed\"):\n                max_speed = float(line.split(\"=\")[1].strip())\n                break\n    score += max(0, 500 - abs(car.average_speed - max_speed))\n    \n    \n    score += car.drift_count * 10\n    \n    \n    return score\n\n\n# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# Available car attributes:\n#\n#   car.checkpoints_reached   int    Checkpoints passed in current lap\n#   car.total_checkpoints     int    Total checkpoints crossed (all laps)\n#   car.laps                  int    Full laps completed\n#   car.time_alive            int    Ticks survived\n#   car.total_time            int    Max ticks allowed per generation\n#   car.total_distance        float  Total distance traveled (odometer)\n#   car.average_speed         float  Mean speed over lifetime\n#   car.max_speed_reached     float  Peak speed achieved\n#   car.current_speed         float  Speed at death/end\n#   car.distance_to_next_cp   float  Normalized [0,1] distance to next checkpoint\n#   car.drift_count           int    Ticks spent drifting (0 if drift OFF)\n#   car.is_alive              bool   Still alive at end of generation\n#   car.crashed               bool   Died by hitting grass\n#   car.timed_out             bool   Killed by stall timeout\n#   car.wall_hits             int    Ticks spent grazing grass edge\n#   car.min_wall_distance     float  Closest approach to grass (0 = touching)\n#   car.avg_wall_distance     float  Average distance to nearest grass\n#\n# Available: all standard Python builtins (open, len, range, import, etc.)\n# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n"
+}

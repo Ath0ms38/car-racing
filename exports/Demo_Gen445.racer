@@ -1,0 +1,263 @@
+{
+  "version": 1,
+  "name": "Demo_Gen445",
+  "exported_at": "2026-02-10T19:49:38.020106+00:00",
+  "car_config": {
+    "name": "Demo",
+    "max_speed": 50.0,
+    "acceleration": 200.0,
+    "brake_force": 200.0,
+    "rotation_speed": 10.0,
+    "drift_enabled": true,
+    "grip": 0.3,
+    "ray_count": 7,
+    "ray_length": 350.0,
+    "ray_angles": "-90.0, -60.0, -30.0, 0.0, 30.0, 60.0, 90.0",
+    "car_image": "assets/default_car.png",
+    "max_ticks": 2000,
+    "stall_timeout": 150
+  },
+  "genome": {
+    "key": 19109,
+    "fitness": 171330.0454144737,
+    "nodes": [
+      {
+        "key": 0,
+        "bias": -0.3031358781615447,
+        "activation": "tanh",
+        "response": 1.0,
+        "aggregation": "sum"
+      },
+      {
+        "key": 1,
+        "bias": 1.4684999843195252,
+        "activation": "tanh",
+        "response": 1.0,
+        "aggregation": "sum"
+      },
+      {
+        "key": 456,
+        "bias": 0.6383545088055695,
+        "activation": "tanh",
+        "response": 1.0,
+        "aggregation": "sum"
+      },
+      {
+        "key": 1105,
+        "bias": -1.1712257143968507,
+        "activation": "tanh",
+        "response": 1.0,
+        "aggregation": "sum"
+      },
+      {
+        "key": 3341,
+        "bias": -0.23467793186211358,
+        "activation": "tanh",
+        "response": 1.0,
+        "aggregation": "sum"
+      },
+      {
+        "key": 3835,
+        "bias": 0.7210773585254279,
+        "activation": "tanh",
+        "response": 1.0,
+        "aggregation": "sum"
+      }
+    ],
+    "connections": [
+      {
+        "key": [
+          -2,
+          0
+        ],
+        "weight": -0.07062193627596178,
+        "enabled": true,
+        "innovation": 3
+      },
+      {
+        "key": [
+          -3,
+          0
+        ],
+        "weight": 3.068519495077718,
+        "enabled": false,
+        "innovation": 5
+      },
+      {
+        "key": [
+          -3,
+          1
+        ],
+        "weight": -1.0364463655765244,
+        "enabled": false,
+        "innovation": 6
+      },
+      {
+        "key": [
+          -4,
+          1
+        ],
+        "weight": 1.225698670567407,
+        "enabled": false,
+        "innovation": 8
+      },
+      {
+        "key": [
+          -5,
+          0
+        ],
+        "weight": -1.140197702245691,
+        "enabled": false,
+        "innovation": 9
+      },
+      {
+        "key": [
+          -6,
+          0
+        ],
+        "weight": -2.769700226964642,
+        "enabled": false,
+        "innovation": 11
+      },
+      {
+        "key": [
+          -8,
+          1
+        ],
+        "weight": -4.451142234766671,
+        "enabled": true,
+        "innovation": 16
+      },
+      {
+        "key": [
+          -10,
+          0
+        ],
+        "weight": 1.6519087242648394,
+        "enabled": false,
+        "innovation": 19
+      },
+      {
+        "key": [
+          -11,
+          0
+        ],
+        "weight": -1.1231211836455417,
+        "enabled": false,
+        "innovation": 21
+      },
+      {
+        "key": [
+          -11,
+          1
+        ],
+        "weight": 1.8995525448885582,
+        "enabled": false,
+        "innovation": 22
+      },
+      {
+        "key": [
+          -9,
+          0
+        ],
+        "weight": 0.3212648841228122,
+        "enabled": false,
+        "innovation": 7189
+      },
+      {
+        "key": [
+          -8,
+          0
+        ],
+        "weight": -0.015450766704180385,
+        "enabled": true,
+        "innovation": 6170
+      },
+      {
+        "key": [
+          -6,
+          1
+        ],
+        "weight": -1.3847860444355051,
+        "enabled": true,
+        "innovation": 5297
+      },
+      {
+        "key": [
+          -4,
+          3341
+        ],
+        "weight": 1.009442271243423,
+        "enabled": true,
+        "innovation": 10947
+      },
+      {
+        "key": [
+          3341,
+          1
+        ],
+        "weight": 1.7868979288987834,
+        "enabled": true,
+        "innovation": 10948
+      },
+      {
+        "key": [
+          -3,
+          1105
+        ],
+        "weight": 5.047384102724355,
+        "enabled": true,
+        "innovation": 3411
+      },
+      {
+        "key": [
+          1105,
+          0
+        ],
+        "weight": -8.233920413266588,
+        "enabled": true,
+        "innovation": 3412
+      },
+      {
+        "key": [
+          -4,
+          456
+        ],
+        "weight": 0.29037503964466077,
+        "enabled": false,
+        "innovation": 1264
+      },
+      {
+        "key": [
+          -10,
+          1105
+        ],
+        "weight": 2.311700567843791,
+        "enabled": false,
+        "innovation": 4599
+      },
+      {
+        "key": [
+          -6,
+          3835
+        ],
+        "weight": 0.5681277736929853,
+        "enabled": true,
+        "innovation": 12635
+      },
+      {
+        "key": [
+          3835,
+          0
+        ],
+        "weight": -2.4046506660468063,
+        "enabled": true,
+        "innovation": 12636
+      }
+    ]
+  },
+  "generation": 445,
+  "species_count": 2,
+  "training_track": "full.track",
+  "fitness_code": "def fitness(car):\n    score = 0.0\n\n    # Reward checkpoint progress (main signal)\n    score += car.total_checkpoints * 1000\n\n    # Reward getting closer to next checkpoint\n    score += (1.0 - car.distance_to_next_cp) * 500\n\n    # Reward completing laps\n    score += car.laps * 10000\n\n    # Reward average speed close to max speed\n    with open(\"config/car_config.ini\", \"r\") as f:\n        for line in f:\n            if line.startswith(\"max_speed\"):\n                max_speed = float(line.split(\"=\")[1].strip())\n                break\n    score += max(0, 500 - abs(car.average_speed - max_speed))\n    \n    \n    score += car.drift_count * 10\n    \n    \n    return score\n\n\n# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# Available car attributes:\n#\n#   car.checkpoints_reached   int    Checkpoints passed in current lap\n#   car.total_checkpoints     int    Total checkpoints crossed (all laps)\n#   car.laps                  int    Full laps completed\n#   car.time_alive            int    Ticks survived\n#   car.total_time            int    Max ticks allowed per generation\n#   car.total_distance        float  Total distance traveled (odometer)\n#   car.average_speed         float  Mean speed over lifetime\n#   car.max_speed_reached     float  Peak speed achieved\n#   car.current_speed         float  Speed at death/end\n#   car.distance_to_next_cp   float  Normalized [0,1] distance to next checkpoint\n#   car.drift_count           int    Ticks spent drifting (0 if drift OFF)\n#   car.is_alive              bool   Still alive at end of generation\n#   car.crashed               bool   Died by hitting grass\n#   car.timed_out             bool   Killed by stall timeout\n#   car.wall_hits             int    Ticks spent grazing grass edge\n#   car.min_wall_distance     float  Closest approach to grass (0 = touching)\n#   car.avg_wall_distance     float  Average distance to nearest grass\n#\n# Available: all standard Python builtins (open, len, range, import, etc.)\n# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n"
+}
