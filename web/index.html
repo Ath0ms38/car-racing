@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEAT Car AI Trainer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Tab Bar -->
+    <div id="tab-bar">
+        <button class="tab active" data-mode="editor">Track Editor</button>
+        <button class="tab" data-mode="training">Training</button>
+        <button class="tab" data-mode="race">Race</button>
+    </div>
+
+    <!-- Main Content Area -->
+    <div id="main-content">
+        <!-- Canvas Area -->
+        <div id="canvas-container">
+            <canvas id="main-canvas" width="1200" height="800"></canvas>
+        </div>
+
+        <!-- Side Panel -->
+        <div id="side-panel">
+            <!-- Editor Panel -->
+            <div id="editor-panel" class="panel-content active">
+                <h2>Track Editor</h2>
+
+                <div class="section">
+                    <h3>Tools</h3>
+                    <div class="tool-buttons">
+                        <button class="tool-btn active" data-tool="road" title="Paint road">Road</button>
+                        <button class="tool-btn" data-tool="erase" title="Erase road">Erase</button>
+                        <button class="tool-btn" data-tool="checkpoint" title="Place checkpoint">Checkpoint</button>
+                        <button class="tool-btn" data-tool="start" title="Place start">Start</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <label>Brush Size: <span id="brush-size-label">20</span></label>
+                    <input type="range" id="brush-size" min="5" max="80" value="20">
+                </div>
+
+                <div class="section">
+                    <h3>Checkpoints: <span id="checkpoint-count">0</span></h3>
+                    <div id="checkpoint-list"></div>
+                    <button id="delete-checkpoint-btn" class="small-btn" disabled>Delete Last</button>
+                </div>
+
+                <div class="section">
+                    <div class="button-row">
+                        <button id="undo-btn" class="small-btn" disabled>Undo</button>
+                        <button id="redo-btn" class="small-btn" disabled>Redo</button>
+                        <button id="clear-btn" class="small-btn danger">Clear All</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>File</h3>
+                    <div class="button-row">
+                        <button id="save-track-btn">Save Track</button>
+                        <button id="load-track-btn">Load Track</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Training Panel -->
+            <div id="training-panel" class="panel-content">
+                <h2>Training</h2>
+
+                <div class="section">
+                    <div class="status-indicator">
+                        <span class="dot" id="training-dot"></span>
+                        <span id="training-status">Stopped</span>
+                    </div>
+                    <div class="button-row">
+                        <button id="start-training-btn">Start</button>
+                        <button id="pause-training-btn" disabled>Pause</button>
+                        <button id="stop-training-btn" disabled>Stop</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <label>Speed: <span id="speed-label">x1</span></label>
+                    <input type="range" id="speed-slider" min="1" max="50" value="1">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="show-rays" checked> Show Rays
+                    </label>
+                </div>
+
+                <div class="section">
+                    <h3>Stats</h3>
+                    <div class="stats-grid">
+                        <span>Generation:</span><span id="stat-generation">0</span>
+                        <span>Alive:</span><span id="stat-alive">0 / 0</span>
+                        <span>Best Fitness:</span><span id="stat-best-fitness">0</span>
+                        <span>Avg Fitness:</span><span id="stat-avg-fitness">0</span>
+                        <span>Species:</span><span id="stat-species">0</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Fitness Graph</h3>
+                    <canvas id="fitness-chart" width="280" height="150"></canvas>
+                </div>
+
+                <div class="section">
+                    <h3>Actions</h3>
+                    <div class="button-row">
+                        <button id="save-checkpoint-btn" disabled>Save Checkpoint</button>
+                        <button id="export-best-btn" disabled>Export Best</button>
+                    </div>
+                    <div style="margin-top:8px">
+                        <label>Load Checkpoint:</label>
+                        <select id="checkpoint-select"><option value="">-- Select --</option></select>
+                        <button id="resume-checkpoint-btn" class="small-btn" disabled>Resume</button>
+                    </div>
+                </div>
+
+                <div class="section collapsible">
+                    <h3 class="collapsible-header">Car Config <span class="arrow">&#9660;</span></h3>
+                    <div class="collapsible-body">
+                        <div id="car-config-form"></div>
+                        <div class="ray-angle-editor">
+                            <label>Ray Angles (degrees)</label>
+                            <div class="ray-angle-input-row">
+                                <input type="text" id="ray-angles-input" placeholder="-90, -45, 0, 45, 90">
+                                <button id="ray-angles-apply" class="small-btn">Apply</button>
+                            </div>
+                            <canvas id="ray-preview-canvas" width="160" height="160"></canvas>
+                            <div class="ray-angle-presets">
+                                <button class="small-btn ray-preset" data-angles="-90,-45,0,45,90">5 wide</button>
+                                <button class="small-btn ray-preset" data-angles="-60,-30,0,30,60">5 narrow</button>
+                                <button class="small-btn ray-preset" data-angles="-90,-60,-30,0,30,60,90">7 wide</button>
+                                <button class="small-btn ray-preset" data-angles="-45,-15,0,15,45">5 front</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section collapsible">
+                    <h3 class="collapsible-header">NEAT Config <span class="arrow">&#9660;</span></h3>
+                    <div class="collapsible-body" id="neat-config-form"></div>
+                </div>
+
+                <div class="section">
+                    <button id="apply-config-btn" class="full-btn">Apply Config Changes</button>
+                </div>
+
+                <div class="section collapsible">
+                    <h3 class="collapsible-header">Fitness Function <span class="arrow">&#9660;</span></h3>
+                    <div class="collapsible-body">
+                        <div class="fitness-file-info">
+                            <span id="fitness-file-path" title="Edit this file in your IDE"></span>
+                            <button id="reload-fitness-btn" class="small-btn">Reload</button>
+                        </div>
+                        <textarea id="fitness-code" rows="12" spellcheck="false" readonly></textarea>
+                        <div id="fitness-status"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Race Panel -->
+            <div id="race-panel" class="panel-content">
+                <h2>Race</h2>
+
+                <div class="section">
+                    <label>Track: <span id="race-track-name">None</span></label>
+                    <button id="race-load-track-btn">Load Track</button>
+                </div>
+
+                <div class="section">
+                    <label>Laps: <input type="number" id="race-laps" value="3" min="1" max="100" style="width:60px"></label>
+                </div>
+
+                <div class="section">
+                    <h3>Racers</h3>
+                    <div id="racer-list"></div>
+                    <div class="button-row" style="margin-top:8px">
+                        <button id="add-racer-btn">+ Add Racer</button>
+                        <button id="remove-racer-btn" class="small-btn" disabled>Remove Last</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <button id="start-race-btn" class="full-btn" disabled>Start Race</button>
+                    <button id="stop-race-btn" class="full-btn danger" style="display:none">Stop Race</button>
+                </div>
+
+                <div class="section">
+                    <h3>Leaderboard</h3>
+                    <div id="race-leaderboard"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div id="bottom-bar">
+        <span>Mode: <strong id="mode-label">Editor</strong></span>
+        <span id="bottom-gen" style="display:none">Gen: <strong id="bottom-gen-val">0</strong></span>
+        <span id="bottom-alive" style="display:none">Alive: <strong id="bottom-alive-val">0/0</strong></span>
+        <span id="bottom-best" style="display:none">Best: <strong id="bottom-best-val">0</strong></span>
+        <span id="bottom-speed" style="display:none">Speed: <strong id="bottom-speed-val">x1</strong></span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/app.js"></script>
+    <script src="js/canvas.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/training.js"></script>
+    <script src="js/race.js"></script>
+    <script src="js/config_panel.js"></script>
+    <script src="js/fitness_editor.js"></script>
+    <script src="js/chart.js"></script>
+</body>
+</html>

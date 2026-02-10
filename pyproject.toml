@@ -1,0 +1,17 @@
+[project]
+name = "neat-car-ai"
+version = "1.0.0"
+description = "Train self-driving car AI using NEAT neuroevolution"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pywebview>=5.0",
+    "neat-python>=1.1.0",
+    "numpy>=1.24",
+    "qtpy>=2.4.3",
+    "pyqt6>=6.10.2",
+    "pyqt6-webengine>=6.10.0",
+]
+
+[project.scripts]
+neat-car-ai = "main:main"
