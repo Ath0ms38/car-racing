@@ -54,11 +54,7 @@ class FitnessEvaluator:
         try:
             compile(code, "<fitness>", "exec")
 
-            namespace = {
-                "abs": abs, "min": min, "max": max,
-                "pow": pow, "round": round,
-                "__builtins__": {},
-            }
+            namespace = {}
             exec(code, namespace)
 
             if "fitness" not in namespace:

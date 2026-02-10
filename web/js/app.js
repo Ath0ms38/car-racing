@@ -115,7 +115,7 @@ class App {
         } else if (mode === 'training') {
             this.editor.deactivate();
             this.raceUI.stopPolling();
-            // Training polling is managed by trainingUI
+            this.trainingUI.show();
         } else if (mode === 'race') {
             this.editor.deactivate();
             this.trainingUI.stopPolling();

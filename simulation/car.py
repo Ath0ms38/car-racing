@@ -178,6 +178,7 @@ class CarBatch:
         steering: np.ndarray,
         throttle: np.ndarray,
         config: CarConfig,
+        track=None,
     ):
         """Vectorized physics update for all cars."""
         dt = self.DT
@@ -208,10 +209,38 @@ class CarBatch:
             move_angles = self.angles
 
         px_per_tick = self.speeds * scale * dt  # pixels this tick
-        dx = np.cos(move_angles) * px_per_tick * alive_mask
-        dy = np.sin(move_angles) * px_per_tick * alive_mask
-        self.positions[:, 0] += dx
-        self.positions[:, 1] += dy
+
+        dir_x = np.cos(move_angles)
+        dir_y = np.sin(move_angles)
+
+        if track is not None:
+            # Subdivide movement to prevent tunneling through grass.
+            # Checkpoint intersection uses start->end segment, no substeps needed.
+            MAX_STEP_PX = 8.0
+            max_px = np.max(px_per_tick * alive_mask) if np.any(self.alive) else 0.0
+            substeps = max(1, int(np.ceil(max_px / MAX_STEP_PX)))
+
+            step_dx = dir_x * px_per_tick / substeps
+            step_dy = dir_y * px_per_tick / substeps
+
+            # Save positions before movement for checkpoint detection
+            old_positions = self.positions.copy()
+
+            for _ in range(substeps):
+                alive_f = self.alive.astype(np.float64)
+                self.positions[:, 0] += step_dx * alive_f
+                self.positions[:, 1] += step_dy * alive_f
+                self.check_grass(track)
+
+            # Check checkpoints once using full start->end path
+            self.check_checkpoints_sweep(track.checkpoints, old_positions)
+        else:
+            # No track: simple movement, no collision
+            self.positions[:, 0] += dir_x * px_per_tick * alive_mask
+            self.positions[:, 1] += dir_y * px_per_tick * alive_mask
+
+        dx = dir_x * px_per_tick * alive_mask
+        dy = dir_y * px_per_tick * alive_mask
 
         # Update tracking stats
         dist = np.sqrt(dx * dx + dy * dy)
@@ -260,6 +289,32 @@ class CarBatch:
                 # Reset stall timer on checkpoint
                 self.stall_timer = np.where(advanced, 0, self.stall_timer)
 
+    def check_checkpoints_sweep(self, checkpoints: list, old_positions: np.ndarray):
+        """Check checkpoints using explicit old->new position sweep."""
+        if not checkpoints:
+            return
+
+        num_cps = len(checkpoints)
+
+        for i, cp in enumerate(checkpoints):
+            needs_this = (self.checkpoint_progress == i) & self.alive
+            if not np.any(needs_this):
+                continue
+
+            crossed = cp.intersects_batch(old_positions, self.positions)
+            advanced = crossed & needs_this
+
+            if np.any(advanced):
+                self.total_checkpoints += advanced.astype(np.int32)
+                self.checkpoint_progress = np.where(
+                    advanced,
+                    (self.checkpoint_progress + 1) % num_cps,
+                    self.checkpoint_progress,
+                )
+                lap_done = advanced & (self.checkpoint_progress == 0)
+                self.laps += lap_done.astype(np.int32)
+                self.stall_timer = np.where(advanced, 0, self.stall_timer)
+
     def check_stall(self, max_stall: int):
         """Kill cars stalled too long."""
         stalled = (self.stall_timer >= max_stall) & self.alive
@@ -306,10 +361,11 @@ class CarBatch:
 
     def get_nn_inputs(self, track, config: CarConfig) -> np.ndarray:
         """Build neural network inputs for all cars. Returns (N, num_inputs)."""
-        # Raycast
+        # Raycast (cached for reuse by wall stats)
         ray_distances = track.raycast_batch(
             self.positions, self.angles, config.ray_angles, config.ray_length
         )
+        self._last_ray_distances = ray_distances
 
         # Normalize speed: [0, 1]
         speed_norm = (self.speeds / config.max_speed).reshape(-1, 1)

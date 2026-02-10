@@ -172,7 +172,7 @@ class Api:
             # Update NEAT config num_inputs
             self._update_neat_num_inputs()
 
-            self._trainer.start(track, self._car_config, NEAT_CONFIG_PATH)
+            self._trainer.start(track, self._car_config, NEAT_CONFIG_PATH, window=self._window)
             self._trainer._track = track
             return {"success": True}
         except Exception as e:
@@ -191,13 +191,19 @@ class Api:
         with open(NEAT_CONFIG_PATH, "w") as f:
             f.write(content)
 
-    def resume_training(self, checkpoint_path: str) -> dict:
+    def resume_training(self, checkpoint_path: str, track_json: str = None) -> dict:
         """Resume from checkpoint."""
         try:
+            if track_json:
+                data = json.loads(track_json) if isinstance(track_json, str) else track_json
+                track = Track.from_json(data)
+                self._current_track = track
+            if self._current_track is None:
+                return {"success": False, "error": "Load a track before resuming training"}
             self._car_config = CarConfig.from_ini(CAR_CONFIG_PATH)
             self._update_neat_num_inputs()
             self._trainer._track = self._current_track
-            self._trainer.resume(checkpoint_path, self._car_config, NEAT_CONFIG_PATH)
+            self._trainer.resume(checkpoint_path, self._car_config, NEAT_CONFIG_PATH, window=self._window)
             return {"success": True}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -231,7 +237,10 @@ class Api:
     def list_checkpoints(self) -> list:
         """List available checkpoints."""
         os.makedirs(CHECKPOINTS_DIR, exist_ok=True)
-        files = glob_module.glob(os.path.join(CHECKPOINTS_DIR, "neat-checkpoint-*"))
+        # Match both old format (neat-checkpoint-*) and new format (CarName-gen-*)
+        files = glob_module.glob(os.path.join(CHECKPOINTS_DIR, "*-gen-*"))
+        files += glob_module.glob(os.path.join(CHECKPOINTS_DIR, "neat-checkpoint-*"))
+        files = list(set(files))  # deduplicate
         result = []
         for f in sorted(files, key=os.path.getmtime, reverse=True):
             name = os.path.basename(f)

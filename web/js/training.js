@@ -1,5 +1,5 @@
 /**
- * TrainingUI - Training controls, polling loop, stats display.
+ * TrainingUI - Training controls, push-based rendering, stats display.
  */
 class TrainingUI {
     constructor(renderer, chart) {
@@ -7,11 +7,24 @@ class TrainingUI {
         this.chart = chart;
         this.isRunning = false;
         this.isPaused = false;
-        this._pollId = null;
+        this._rafId = null;
+        this._pendingState = null;
         this._trackImageLoaded = false;
         this._trackData = null;
 
+        // Register global receiver for Python push
+        window._onTrainingState = (state) => {
+            this._pendingState = state;
+        };
+
         this._bindControls();
+        this._refreshCheckpoints();
+        this._updateButtons();
+    }
+
+    show() {
+        this._refreshCheckpoints();
+        this._updateButtons();
     }
 
     _bindControls() {
@@ -68,13 +81,30 @@ class TrainingUI {
         document.getElementById('resume-checkpoint-btn').addEventListener('click', async () => {
             const select = document.getElementById('checkpoint-select');
             if (!select.value) return;
+
+            // Stop any existing training first
+            this.stopPolling();
+
+            // Get track from editor (same as startTraining)
+            const editor = window.app.editor;
+            const trackData = editor.getTrackData();
+            this._trackData = trackData;
+
+            const trackImg = new Image();
+            trackImg.src = editor.roadCanvas.toDataURL();
+            await new Promise((resolve) => { trackImg.onload = resolve; });
+            this.renderer.setTrackImage(trackImg);
+            this._trackImageLoaded = true;
+
             try {
-                const result = await pywebview.api.resume_training(select.value);
+                const result = await pywebview.api.resume_training(select.value, JSON.stringify(trackData));
                 if (result.success) {
                     this.isRunning = true;
                     this.isPaused = false;
                     this._updateButtons();
                     this.startPolling();
+                    this.chart.clear();
+                    this.renderer.clearTireMarks();
                     showToast('Resumed from checkpoint!');
                 } else {
                     showToast(result.error || 'Resume failed', 'error');
@@ -99,6 +129,8 @@ class TrainingUI {
         await new Promise((resolve) => { trackImg.onload = resolve; });
         this.renderer.setTrackImage(trackImg);
         this._trackImageLoaded = true;
+
+        this.renderer.clearTireMarks();
 
         try {
             const result = await pywebview.api.start_training(JSON.stringify(trackData));
@@ -169,37 +201,36 @@ class TrainingUI {
         }
     }
 
-    // === Polling Loop ===
+    // === Render Loop (push-based) ===
 
     startPolling() {
-        if (this._pollId) return;
-        this._poll();
+        if (this._rafId) return;
+        this._pendingState = null;
+        this._renderLoop();
     }
 
     stopPolling() {
-        if (this._pollId) {
-            cancelAnimationFrame(this._pollId);
-            this._pollId = null;
+        if (this._rafId) {
+            cancelAnimationFrame(this._rafId);
+            this._rafId = null;
         }
+        this._pendingState = null;
     }
 
-    async _poll() {
+    _renderLoop() {
         if (!this.isRunning) {
-            this._pollId = null;
+            this._rafId = null;
             return;
         }
 
-        try {
-            const state = await pywebview.api.get_training_state();
-            if (state && state.cars) {
-                this._renderState(state);
-                this._updateStats(state);
-            }
-        } catch (e) {
-            // Polling error, will retry
+        const state = this._pendingState;
+        if (state && state.cars) {
+            this._pendingState = null;
+            this._renderState(state);
+            this._updateStats(state);
         }
 
-        this._pollId = requestAnimationFrame(() => this._poll());
+        this._rafId = requestAnimationFrame(() => this._renderLoop());
     }
 
     _renderState(state) {

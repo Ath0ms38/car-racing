@@ -42,20 +42,16 @@ class World:
                 steering[i] = np.tanh(output[0])  # [-1, 1]
                 throttle[i] = np.tanh(output[1])  # [-1, 1]
 
-        # 3. Update physics
-        self.cars.update(steering, throttle, self.car_config)
+        # 3. Update physics (includes substep grass + checkpoint checks)
+        self.cars.update(steering, throttle, self.car_config, self.track)
 
-        # 4. Check grass collision
-        self.cars.check_grass(self.track)
-
-        # 5. Check checkpoints
-        self.cars.check_checkpoints(self.track.checkpoints)
-
-        # 6. Update wall stats (need ray distances)
-        ray_distances = self.track.raycast_batch(
-            self.cars.positions, self.cars.angles,
-            self.car_config.ray_angles, self.car_config.ray_length
-        )
+        # 6. Update wall stats (reuse raycast from get_nn_inputs)
+        ray_distances = getattr(self.cars, '_last_ray_distances', None)
+        if ray_distances is None:
+            ray_distances = self.track.raycast_batch(
+                self.cars.positions, self.cars.angles,
+                self.car_config.ray_angles, self.car_config.ray_length
+            )
         self._last_ray_distances = ray_distances
         self.cars.update_wall_stats(self.track, ray_distances, self.car_config.ray_length)
 
@@ -73,26 +69,35 @@ class World:
     def all_dead(self) -> bool:
         return not np.any(self.cars.alive)
 
-    def get_state(self) -> dict:
+    def get_state(self, include_rays: bool = True) -> dict:
         """For JS rendering."""
         state = self.cars.get_state_dict()
         state["tick"] = self.tick
         state["max_ticks"] = self.car_config.max_ticks
 
-        # Include ray endpoints if available
-        if self._last_ray_distances is not None:
+        # Include ray endpoints only when requested and available
+        if include_rays and self._last_ray_distances is not None:
             rays = []
+            alive = self.cars.alive
+            positions = self.cars.positions
+            angles = self.cars.angles
+            ray_angles = self.car_config.ray_angles
+            ray_len = self.car_config.ray_length
+            dists = self._last_ray_distances
+
             for i in range(self.cars.count):
-                if self.cars.alive[i]:
+                if alive[i]:
+                    x1 = float(positions[i, 0])
+                    y1 = float(positions[i, 1])
+                    base_angle = angles[i]
                     car_rays = []
-                    for j, offset in enumerate(self.car_config.ray_angles):
-                        angle = self.cars.angles[i] + offset
-                        dist = self._last_ray_distances[i, j] * self.car_config.ray_length
-                        x1 = self.cars.positions[i, 0]
-                        y1 = self.cars.positions[i, 1]
-                        x2 = x1 + math.cos(angle) * dist
-                        y2 = y1 + math.sin(angle) * dist
-                        car_rays.append([x1, y1, x2, y2, self._last_ray_distances[i, j]])
+                    for j in range(len(ray_angles)):
+                        angle = base_angle + ray_angles[j]
+                        d = float(dists[i, j])
+                        dist_px = d * ray_len
+                        car_rays.append([x1, y1,
+                                         x1 + math.cos(angle) * dist_px,
+                                         y1 + math.sin(angle) * dist_px, d])
                     rays.append(car_rays)
                 else:
                     rays.append(None)

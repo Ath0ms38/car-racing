@@ -98,6 +98,7 @@ class Exporter:
                 "key": list(key),
                 "weight": conn.weight,
                 "enabled": conn.enabled,
+                "innovation": conn.innovation,
             })
 
         return {
@@ -121,9 +122,10 @@ class Exporter:
             node.aggregation = node_data.get("aggregation", "sum")
             genome.nodes[node_data["key"]] = node
 
-        for conn_data in data["connections"]:
+        for i, conn_data in enumerate(data["connections"]):
             key = tuple(conn_data["key"])
-            conn = genome.create_connection(config.genome_config, key[0], key[1])
+            innovation = conn_data.get("innovation", i)
+            conn = neat.genome.DefaultConnectionGene(key, innovation)
             conn.weight = conn_data["weight"]
             conn.enabled = conn_data["enabled"]
             genome.connections[key] = conn

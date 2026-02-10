@@ -1,3 +1,4 @@
+import json
 import os
 import threading
 import time
@@ -44,6 +45,7 @@ class Trainer:
 
         self._lock = threading.Lock()
         self._current_state: dict = {}
+        self._window = None
         self._thread: threading.Thread | None = None
         self._population = None
         self._neat_config = None
@@ -54,11 +56,12 @@ class Trainer:
         self._checkpoint_dir = "checkpoints"
         self._auto_checkpoint_interval = 10
 
-    def start(self, track: Track, car_config: CarConfig, neat_config_path: str):
+    def start(self, track: Track, car_config: CarConfig, neat_config_path: str, window=None):
         """Start new training from scratch."""
         if self.running:
             return
 
+        self._window = window
         self._track = track
         self._car_config = car_config
         self._neat_config_path = neat_config_path
@@ -82,10 +85,13 @@ class Trainer:
         self._population.add_reporter(neat.StatisticsReporter())
 
         os.makedirs(self._checkpoint_dir, exist_ok=True)
+        self._checkpoint_prefix = os.path.join(
+            self._checkpoint_dir, f"{car_config.name}-gen-"
+        )
         self._population.add_reporter(
             neat.Checkpointer(
                 generation_interval=self._auto_checkpoint_interval,
-                filename_prefix=os.path.join(self._checkpoint_dir, "neat-checkpoint-"),
+                filename_prefix=self._checkpoint_prefix,
             )
         )
 
@@ -104,11 +110,12 @@ class Trainer:
         self._thread = threading.Thread(target=self._training_thread, daemon=True)
         self._thread.start()
 
-    def resume(self, checkpoint_path: str, car_config: CarConfig, neat_config_path: str):
+    def resume(self, checkpoint_path: str, car_config: CarConfig, neat_config_path: str, window=None):
         """Resume training from a checkpoint."""
         if self.running:
-            return
+            self.stop()
 
+        self._window = window
         self._car_config = car_config
         self._neat_config_path = neat_config_path
 
@@ -124,15 +131,23 @@ class Trainer:
         self._population.reporters.reporters.clear()
         self._population.add_reporter(neat.StdOutReporter(True))
         self._population.add_reporter(neat.StatisticsReporter())
+        self._checkpoint_prefix = os.path.join(
+            self._checkpoint_dir, f"{car_config.name}-gen-"
+        )
         self._population.add_reporter(
             neat.Checkpointer(
                 generation_interval=self._auto_checkpoint_interval,
-                filename_prefix=os.path.join(self._checkpoint_dir, "neat-checkpoint-"),
+                filename_prefix=self._checkpoint_prefix,
             )
         )
 
         self._world = World(self._track, car_config)
 
+        # Reset state from checkpoint
+        self.generation = self._population.generation
+        self.best_fitness = 0.0
+        self.best_genome = None
+        self.history = []
         self.running = True
         self.paused = False
 
@@ -213,27 +228,27 @@ class Trainer:
                     still_alive = False
                     break
 
-            # Update state for JS polling
-            with self._lock:
-                world_state = self._world.get_state()
-                self._current_state = _to_native({
-                    "cars": world_state["positions"],
-                    "angles": world_state["angles"],
-                    "velocity_angles": world_state["velocity_angles"],
-                    "speeds": world_state["speeds"],
-                    "alive": world_state["alive"],
-                    "fitness": world_state["fitness"],
-                    "rays": world_state["rays"] if self.show_rays else None,
-                    "generation": self.generation,
-                    "alive_count": int(np.sum(self._world.cars.alive)),
-                    "total_count": n,
-                    "best_fitness": float(self.best_fitness),
-                    "species_count": len(self._population.species.species)
-                        if self._population and hasattr(self._population, 'species') else 0,
-                    "tick": self._world.tick,
-                    "max_ticks": max_ticks,
-                    "history": self.history[-100:],
-                })
+            # Push state to JS via evaluate_js
+            world_state = self._world.get_state(include_rays=self.show_rays)
+            state = {
+                "cars": self._world.cars.positions.tolist(),
+                "angles": self._world.cars.angles.tolist(),
+                "velocity_angles": self._world.cars.velocity_angles.tolist(),
+                "speeds": self._world.cars.speeds.tolist(),
+                "alive": self._world.cars.alive.tolist(),
+                "fitness": self._world.cars.fitness.tolist(),
+                "rays": world_state["rays"],
+                "generation": self.generation,
+                "alive_count": int(np.sum(self._world.cars.alive)),
+                "total_count": n,
+                "best_fitness": float(self.best_fitness),
+                "species_count": len(self._population.species.species)
+                    if self._population and hasattr(self._population, 'species') else 0,
+                "tick": self._world.tick,
+                "max_ticks": max_ticks,
+                "history": self.history[-100:],
+            }
+            self._push_state(state)
 
             if not still_alive:
                 break
@@ -252,8 +267,20 @@ class Trainer:
                 self.best_fitness = genome.fitness
                 self.best_genome = genome
 
+    def _push_state(self, state: dict):
+        """Push state to JS via evaluate_js (no polling round-trip)."""
+        if self._window is not None:
+            try:
+                json_str = json.dumps(state, separators=(',', ':'))
+                self._window.evaluate_js(f"window._onTrainingState({json_str})")
+            except Exception:
+                pass
+        # Also store for get_state fallback
+        with self._lock:
+            self._current_state = state
+
     def get_state(self) -> dict:
-        """Thread-safe state for JS polling."""
+        """Thread-safe state for JS polling (fallback)."""
         with self._lock:
             return self._current_state.copy()
 
@@ -262,8 +289,9 @@ class Trainer:
         if self._population is None:
             return ""
         os.makedirs(self._checkpoint_dir, exist_ok=True)
+        car_name = self._car_config.name if self._car_config else "car"
         filepath = os.path.join(
-            self._checkpoint_dir, f"neat-checkpoint-manual-{self.generation}"
+            self._checkpoint_dir, f"{car_name}-gen-{self.generation}"
         )
         # Use NEAT's checkpointer
         for reporter in self._population.reporters.reporters:

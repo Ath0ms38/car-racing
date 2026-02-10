@@ -10,12 +10,18 @@ def fitness(car):
     # Reward completing laps
     score += car.laps * 10000
 
-    # Reward average speed
-    score += car.average_speed * 10
-
-    # Reward staying away from walls (safer driving)
-    score += car.avg_wall_distance * 2
-
+    # Reward average speed close to max speed
+    with open("config/car_config.ini", "r") as f:
+        for line in f:
+            if line.startswith("max_speed"):
+                max_speed = float(line.split("=")[1].strip())
+                break
+    score += max(0, 500 - abs(car.average_speed - max_speed))
+    
+    
+    score += car.drift_count * 10
+    
+    
     return score
 
 
@@ -40,5 +46,5 @@ def fitness(car):
 #   car.min_wall_distance     float  Closest approach to grass (0 = touching)
 #   car.avg_wall_distance     float  Average distance to nearest grass
 #
-# Available math: abs, min, max, pow, round
+# Available: all standard Python builtins (open, len, range, import, etc.)
 # ──────────────────────────────────────────────────────────

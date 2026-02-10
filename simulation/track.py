@@ -122,6 +122,9 @@ class Track:
         step_size = 2.0
         n_steps = int(max_length / step_size)
 
+        # Track which rays still need checking
+        not_hit = np.ones((n_cars, n_rays), dtype=bool)
+
         for s in range(1, n_steps + 1):
             dist = s * step_size
             # Sample points: (N, R)
@@ -136,11 +139,14 @@ class Track:
             safe_x = np.clip(ix, 0, self.width - 1)
             safe_y = np.clip(iy, 0, self.height - 1)
 
-            hit = oob | self.road_mask[safe_y, safe_x]
+            hit = (oob | self.road_mask[safe_y, safe_x]) & not_hit
 
-            # Update result: first hit gets the distance
-            new_hits = hit & (result == 1.0)
-            result = np.where(new_hits, dist / max_length, result)
+            if np.any(hit):
+                result[hit] = dist / max_length
+                not_hit &= ~hit
+                # Early exit: all rays resolved
+                if not np.any(not_hit):
+                    break
 
         return result
 
