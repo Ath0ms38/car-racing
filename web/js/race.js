@@ -123,6 +123,21 @@ class RaceUI {
 
         const numLaps = parseInt(document.getElementById('race-laps').value) || 3;
 
+        // Load car image
+        try {
+            const carImgSrc = await pywebview.api.get_car_image_base64();
+            if (carImgSrc) {
+                const carImg = new Image();
+                carImg.src = carImgSrc;
+                await new Promise((resolve) => { carImg.onload = resolve; });
+                this.renderer.setCarImage(carImg);
+            } else {
+                this.renderer.setCarImage(null);
+            }
+        } catch (e) {
+            this.renderer.setCarImage(null);
+        }
+
         try {
             const result = await pywebview.api.start_race(
                 JSON.stringify(this._trackData),

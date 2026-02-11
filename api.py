@@ -107,6 +107,20 @@ class Api:
 
     # === Config ===
 
+    def get_car_image_base64(self) -> str:
+        """Return car image as base64 data URL."""
+        import base64
+        path = self._car_config.car_image
+        if not os.path.isabs(path):
+            path = os.path.join(BASE_DIR, path)
+        if os.path.exists(path):
+            with open(path, 'rb') as f:
+                data = base64.b64encode(f.read()).decode()
+            ext = os.path.splitext(path)[1].lower().lstrip('.')
+            mime = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg'}.get(ext, 'image/png')
+            return f"data:{mime};base64,{data}"
+        return ""
+
     def get_car_config(self) -> dict:
         return ConfigBridge.read_car_config(CAR_CONFIG_PATH)
 

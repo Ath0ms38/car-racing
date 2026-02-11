@@ -6,6 +6,7 @@ class Renderer {
         this.canvas = canvas;
         this.ctx = ctx;
         this.trackImage = null;
+        this.carImage = null;
         this.showRays = true;
         this.camera = { x: 0, y: 0, zoom: 1 };
 
@@ -80,6 +81,16 @@ class Renderer {
 
     setTrackImage(imageData) {
         this.trackImage = imageData;
+    }
+
+    setCarImage(imageData) {
+        this.carImage = imageData;
+        if (imageData) {
+            // Scale image to fit car width, preserving aspect ratio
+            const imgAspect = imageData.naturalWidth / imageData.naturalHeight;
+            this._carDrawW = this.CAR_WIDTH;
+            this._carDrawH = this.CAR_WIDTH / imgAspect;
+        }
     }
 
     drawTrack() {
@@ -192,34 +203,44 @@ class Renderer {
             ctx.translate(x, y);
             ctx.rotate(angle);
 
-            if (isAlive) {
-                // Tint car orange when drifting
-                if (driftAngle > 0.08) {
-                    const t = Math.min(driftAngle / 0.6, 1.0);
-                    const r = Math.floor(68 + (255 - 68) * t);
-                    const g = Math.floor(136 + (165 - 136) * t);
-                    const b = Math.floor(255 + (0 - 255) * t);
-                    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
-                    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 1)`;
-                } else {
-                    ctx.fillStyle = 'rgba(68, 136, 255, 0.8)';
-                    ctx.strokeStyle = 'rgba(68, 136, 255, 1)';
-                }
-            } else {
-                ctx.fillStyle = 'rgba(255, 68, 68, 0.2)';
-                ctx.strokeStyle = 'rgba(255, 68, 68, 0.3)';
-            }
-
-            // Draw car body
             const hw = this.CAR_WIDTH / 2;
             const hh = this.CAR_HEIGHT / 2;
-            ctx.fillRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
-            ctx.strokeRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
 
-            // Front indicator
-            if (isAlive) {
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(hw - 4, -2, 4, 4);
+            if (this.carImage) {
+                const dw = this._carDrawW;
+                const dh = this._carDrawH;
+                ctx.globalAlpha = isAlive ? 0.9 : 0.2;
+                ctx.drawImage(this.carImage, -dw / 2, -dh / 2, dw, dh);
+                // Drift tint overlay
+                if (isAlive && driftAngle > 0.08) {
+                    const t = Math.min(driftAngle / 0.6, 1.0);
+                    ctx.fillStyle = `rgba(255, 165, 0, ${t * 0.4})`;
+                    ctx.fillRect(-dw / 2, -dh / 2, dw, dh);
+                }
+                ctx.globalAlpha = 1;
+            } else {
+                if (isAlive) {
+                    if (driftAngle > 0.08) {
+                        const t = Math.min(driftAngle / 0.6, 1.0);
+                        const r = Math.floor(68 + (255 - 68) * t);
+                        const g = Math.floor(136 + (165 - 136) * t);
+                        const b = Math.floor(255 + (0 - 255) * t);
+                        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
+                        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 1)`;
+                    } else {
+                        ctx.fillStyle = 'rgba(68, 136, 255, 0.8)';
+                        ctx.strokeStyle = 'rgba(68, 136, 255, 1)';
+                    }
+                } else {
+                    ctx.fillStyle = 'rgba(255, 68, 68, 0.2)';
+                    ctx.strokeStyle = 'rgba(255, 68, 68, 0.3)';
+                }
+                ctx.fillRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
+                ctx.strokeRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
+                if (isAlive) {
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(hw - 4, -2, 4, 4);
+                }
             }
 
             ctx.restore();
@@ -278,49 +299,57 @@ class Renderer {
             ctx.translate(x, y);
             ctx.rotate(angle);
 
-            // Car body - tint towards orange when drifting
-            if (alive) {
-                if (drift_enabled && driftAngle > 0.08) {
-                    // Parse the base color and blend towards orange
-                    ctx.fillStyle = color;
-                    ctx.globalAlpha = 0.9;
-                    // Draw base car
-                    const hw = this.CAR_WIDTH / 2;
-                    const hh = this.CAR_HEIGHT / 2;
-                    ctx.fillRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
-                    // Overlay orange tint based on drift intensity
+            const hw = this.CAR_WIDTH / 2;
+            const hh = this.CAR_HEIGHT / 2;
+
+            if (this.carImage) {
+                const dw = this._carDrawW;
+                const dh = this._carDrawH;
+                ctx.globalAlpha = alive ? 0.9 : 0.3;
+                ctx.drawImage(this.carImage, -dw / 2, -dh / 2, dw, dh);
+                // Colored border for racer distinction
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(-dw / 2, -dh / 2, dw, dh);
+                // Drift tint overlay
+                if (alive && drift_enabled && driftAngle > 0.08) {
                     const t = Math.min(driftAngle / 0.6, 1.0);
-                    ctx.fillStyle = `rgba(255, 165, 0, ${t * 0.5})`;
-                    ctx.fillRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
-                    ctx.strokeStyle = '#ffa500';
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
+                    ctx.fillStyle = `rgba(255, 165, 0, ${t * 0.4})`;
+                    ctx.fillRect(-dw / 2, -dh / 2, dw, dh);
+                }
+                ctx.globalAlpha = 1;
+            } else {
+                if (alive) {
+                    if (drift_enabled && driftAngle > 0.08) {
+                        ctx.fillStyle = color;
+                        ctx.globalAlpha = 0.9;
+                        ctx.fillRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
+                        const t = Math.min(driftAngle / 0.6, 1.0);
+                        ctx.fillStyle = `rgba(255, 165, 0, ${t * 0.5})`;
+                        ctx.fillRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
+                        ctx.strokeStyle = '#ffa500';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
+                    } else {
+                        ctx.fillStyle = color;
+                        ctx.globalAlpha = 0.9;
+                        ctx.fillRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
+                    }
                 } else {
-                    ctx.fillStyle = color;
-                    ctx.globalAlpha = 0.9;
-                    const hw = this.CAR_WIDTH / 2;
-                    const hh = this.CAR_HEIGHT / 2;
+                    ctx.fillStyle = '#666';
+                    ctx.globalAlpha = 0.4;
                     ctx.fillRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
-                    ctx.strokeStyle = '#fff';
+                    ctx.strokeStyle = '#444';
                     ctx.lineWidth = 1;
                     ctx.strokeRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
                 }
-            } else {
-                ctx.fillStyle = '#666';
-                ctx.globalAlpha = 0.4;
-                const hw = this.CAR_WIDTH / 2;
-                const hh = this.CAR_HEIGHT / 2;
-                ctx.fillRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
-                ctx.strokeStyle = '#444';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(-hw, -hh, this.CAR_WIDTH, this.CAR_HEIGHT);
+                ctx.fillStyle = '#fff';
+                ctx.globalAlpha = alive ? 0.9 : 0.3;
+                ctx.fillRect(hw - 4, -2, 4, 4);
             }
-
-            // Front indicator
-            const hw = this.CAR_WIDTH / 2;
-            ctx.fillStyle = '#fff';
-            ctx.globalAlpha = alive ? 0.9 : 0.3;
-            ctx.fillRect(hw - 4, -2, 4, 4);
 
             ctx.restore();
 
